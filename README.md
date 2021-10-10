@@ -1,2 +1,95 @@
-# shen
+# 手写数字识别CNN +pytorch
 pytorchlearning
+'''
+import os
+# third-party library
+import torch
+import torch.nn as nn
+import torch.utils.data as Data
+import torchvision
+import matplotlib.pyplot as plt
+# Hyper Parameters
+EPOCH = 1               # train the training data n times, to save time, we just train 1 epoch
+BATCH_SIZE = 50
+LR = 0.001              # learning rate
+DOWNLOAD_MNIST = False
+# 下载数据集
+if not(os.path.exists('./mnist/')) or not os.listdir('./mnist/'):
+    # not mnist dir or mnist is empyt dir
+    DOWNLOAD_MNIST = True
+
+train_data = torchvision.datasets.MNIST(
+    root='./mnist/',
+    train=True,                                     # this is training data
+    transform=torchvision.transforms.ToTensor(),    # Converts a PIL.Image or numpy.ndarray to
+                                                    # torch.FloatTensor of shape (C x H x W) and normalize in the range [0.0, 1.0]
+    download=DOWNLOAD_MNIST,
+)
+#查看数据集
+print(train_data.train_data.size()) #[60000,28,28]
+print(train_data.train_labels.size())#[60000]
+plt.imshow(train_data.train_data[0].numpy(),cmap="gray")
+#测试集 详情请看torchvision数据集载入功能
+test_data=torchvision.datasets.MNIST(
+    root='./mnist/',
+    train=False,
+    )
+
+#搭建CNN 两层神经网络
+class CNN(nn.Module):
+    def __init__(self):
+        super(CNN,self).__init__()
+        self.conv1=nn.Sequential(
+        nn.Conv2d(                  #nn卷积
+                #卷积参数：输入通道数,输出通道数,padding,步长,滤波器的形状
+                in_channels =1,
+                out_channels=16,
+                padding=0,
+                stride=1,
+                kernel_size=2,
+                ),#[16,27,27]
+            #使用最大池化
+            nn.ReLU(),  #激活函数[16,27,27]
+            nn.MaxPool2d(kernel_size=2,stride=1)#[16,26,26]
+            )
+        #第二层
+        self.conv2=nn.Sequential(
+            nn.Conv2d(16,32,2,1,0), #[32,25,25]
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2,stride=1),#[32,24,24]
+            )
+        #全连接
+        self.out = nn.Linear(32 * 24 * 24, 10)
+    #定义前向传播
+    def forward(self,x):
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = x.view(x.size(0), -1)   # 展平多维的卷积图成 
+        output = self.out(x)
+        return output
+        
+cnn = CNN()
+print(cnn)
+    
+#训练神经网络
+plt.ion()
+train_loader = Data.DataLoader(dataset=train_data, batch_size=BATCH_SIZE, shuffle=True)
+optimizer = torch.optim.Adam(cnn.parameters(), lr=LR)   # optimize all cnn parameters
+loss_func = nn.CrossEntropyLoss()
+los=[]
+for epoch in range(EPOCH):
+    for step, (b_x, b_y) in enumerate(train_loader):
+        # 分配 batch data, normalize x when iterate train_loader
+        output = cnn(b_x)               
+        loss = loss_func(output, b_y)   
+        optimizer.zero_grad()           
+        loss.backward()
+        optimizer.step()  
+        plt.text(0.5, 0, 'Loss=%.4f' % loss.data.numpy(), fontdict={'size': 20, 'color':  'red'})
+        los.append(loss.data.numpy())
+        plt.show()                  
+    
+    
+plt.plot(los)
+plt.show()
+'''
